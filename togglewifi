@@ -1,0 +1,75 @@
+#!/bin/ksh
+
+backupInterfaceFile() {
+        cp /etc/hostname.iwn0 /etc/hostname.iwn0.old
+}
+
+toggleInterfaceFile() {
+        cp $NEWFILE /etc/hostname.iwn0
+}
+
+resetInterface() {
+        ifconfig iwn0 down;
+        ifconfig iwn0 -wpa;
+        ifconfig iwn0 -nwid;
+        ifconfig iwn0 -bssid;
+        ifconfig iwn0 -inet;
+        ifconfig iwn0 media autoselect;
+}
+
+restartInterface() {
+        sh /etc/netstart iwn0;
+}
+
+resetVPN() {
+        pkill openvpn;
+        ifconfig tun0 down;
+        ifconfig tun0 -inet;
+}
+
+restartVPN() {
+        sh /etc/netstart tun0
+}
+
+backupDNS() {
+        cp /etc/resolv.conf /etc/resolv.conf.old
+}
+
+configureDNS() {
+        cp /etc/resolv.conf.vpn /etc/resolv.conf
+}
+
+TOGGLE=$1
+NEWFILE="/etc/$TOGGLE.hostname.iwn0";
+
+if [[ -e $NEWFILE ]]
+        then
+                echo "Toggle Profile found..."
+                echo ".. Backing up old config"
+                backupInterfaceFile
+
+                echo ".. Switching to $TOGGLE"
+                toggleInterfaceFile
+
+                echo ".. Resetting interface"
+                resetInterface
+
+                echo ".. Restarting interface"
+                restartInterface
+
+                echo ".. Resetting VPN"
+                resetVPN
+
+                echo ".. Restarting VPN"
+                restartVPN
+                
+                echo ".. Backing up DNS settings"
+                backupDNS
+
+                echo ".. Configuring DNS for VPN"
+                configureDNS
+
+        else
+                echo "Toggle profile not found.. aborting.."
+                echo "$NEWFILE"
+        fi
